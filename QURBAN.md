@@ -16,6 +16,7 @@ Pengelolaan ibadah qurban di tingkat RT/RW atau Dewan Masjid sering menghadapi t
 - **Transparansi Warga:** Menyediakan halaman publik agar warga bisa memantau status pembayaran dan progres penyembelihan hewan secara real-time.
 - **Akuntabilitas Keuangan:** Membantu Bendahara Masjid mencatat iuran qurban dan pengeluaran operasional secara rapi.
 - **Efisiensi Lapangan:** Menyediakan dashboard koordinasi untuk membagi tugas panitia berdasarkan PIC (Person In Charge) sub-tim masing-masing.
+- **Tema website:** Bergaya islami lengkap dengan pernik-pernik masjid, bulan bintang, dan nuansa islam.
 
 ---
 
