@@ -36,20 +36,26 @@ export default function Navbar() {
       </div>
     </nav>
 
-    {/* Mobile Bottom Navigation - Ensuring 'Hewan' and 'Panitia' are always reachable */}
-    <div className="md:hidden fixed bottom-6 left-4 right-4 z-50">
-      <div className="bg-white/80 backdrop-blur-xl border border-white/20 rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] p-2 flex items-center justify-between overflow-hidden">
-        <Link href="/" className="flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl hover:bg-brand-primary/5 transition-colors">
-          <span className="text-xl">🐄</span>
-          <span className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Hewan</span>
+    {/* Mobile Bottom Navigation - Fully transparent to show footer text */}
+    <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 pointer-events-none">
+      <div className="flex items-center justify-between pointer-events-auto px-4 py-2">
+        <Link href="/" className="flex flex-col items-center gap-1 transition-transform active:scale-90">
+          <div className="w-10 h-10 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+            <span className="text-xl">🐄</span>
+          </div>
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-brand-primary drop-shadow-sm">Hewan</span>
         </Link>
-        <Link href="/monitoring-panitia" className="flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl hover:bg-brand-primary/5 transition-colors">
-          <span className="text-xl">👥</span>
-          <span className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Panitia</span>
+        <Link href="/monitoring-panitia" className="flex flex-col items-center gap-1 transition-transform active:scale-90">
+          <div className="w-10 h-10 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+            <span className="text-xl">👥</span>
+          </div>
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-brand-primary drop-shadow-sm">Panitia</span>
         </Link>
-        <Link href="/dashboard" className="flex-1 flex flex-col items-center gap-1 py-2 rounded-2xl hover:bg-brand-primary/5 transition-colors">
-          <span className="text-xl">🏗️</span>
-          <span className="text-[8px] font-black uppercase tracking-widest text-zinc-500">Panel</span>
+        <Link href="/dashboard" className="flex flex-col items-center gap-1 transition-transform active:scale-90">
+          <div className="w-10 h-10 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+            <span className="text-xl">🏗️</span>
+          </div>
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-brand-primary drop-shadow-sm">Panel</span>
         </Link>
       </div>
     </div>
