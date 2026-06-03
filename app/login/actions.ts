@@ -6,7 +6,7 @@ import { redirect } from 'next/navigation'
 
 export async function loginWithToken(formData: FormData) {
   const token = formData.get('token') as string
-  await verifyAndSetSession(token)
+  return await verifyAndSetSession(token)
 }
 
 export async function verifyAndSetSession(token: string) {
