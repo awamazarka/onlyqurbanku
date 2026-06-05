@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useEffect } from 'react'
 import { updateAnimalStatus, uploadAnimalPhoto, addAnimal, updateTaskStatus, updateAnimalPrice } from '@/app/dashboard/pic/actions'
 
 export default function PicClient({ 
@@ -15,6 +15,11 @@ export default function PicClient({
   const [activeTab, setActiveTab] = useState<'tasks' | 'view' | 'add'>('tasks')
   const [isPending, startTransition] = useTransition()
   const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const handlePriceUpdate = (id: string, formData: FormData) => {
     const price = parseFloat(formData.get('price') as string)
@@ -52,6 +57,8 @@ export default function PicClient({
     })
   }
 
+  if (!mounted) return <div className="p-20 text-center animate-pulse text-zinc-400">🌙 Memuat panel...</div>
+
   return (
     <div className="space-y-8 pb-32">
       {/* Navigation Tabs - Islamic Style */}
@@ -87,24 +94,26 @@ export default function PicClient({
           ) : (
             <div className="grid gap-4 px-2">
               {tasks.map(task => (
-                <div key={task.id} className="bg-white p-6 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group">
-                  <div className="flex justify-between items-start mb-6">
-                    <div>
-                      <h4 className="font-black text-xl text-brand-primary leading-tight">{task.task_name}</h4>
-                      <p className="text-[9px] font-bold text-zinc-400 mt-1.5 uppercase">Update: {new Date(task.updated_at).toLocaleTimeString()}</p>
-                    </div>
-                    <span className={`text-[9px] font-black px-3 py-1 rounded-full uppercase tracking-tighter ${task.status_tugas === 'Selesai' ? 'bg-emerald-100 text-emerald-700' : task.status_tugas === 'Sedang Dikerjakan' ? 'bg-blue-100 text-blue-700' : 'bg-brand-accent/10 text-brand-accent'}`}>
-                      {task.status_tugas}
-                    </span>
+                <div key={task.id} className="bg-white p-6 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group flex items-center justify-between">
+                  <div className="flex-1 pr-4">
+                    <h4 className={`font-black text-xl leading-tight transition-colors ${task.status_tugas === 'Selesai' ? 'text-zinc-400 line-through' : 'text-brand-primary'}`}>{task.task_name}</h4>
+                    <p className="text-[9px] font-bold text-zinc-400 mt-1.5 uppercase">Update: {new Date(task.updated_at).toLocaleTimeString()}</p>
                   </div>
-                  
-                  <button 
-                    disabled={isPending}
-                    onClick={() => handleTaskUpdate(task.id, task.status_tugas)}
-                    className="w-full py-4 bg-zinc-900 text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] shadow-lg active:scale-95 transition-transform"
-                  >
-                    {task.status_tugas === 'Selesai' ? 'RE-OPEN AMANAH' : 'UPDATE PROGRES'}
-                  </button>
+                  <label className="relative flex items-center justify-center cursor-pointer group/check">
+                    <input 
+                      type="checkbox" 
+                      className="peer sr-only"
+                      checked={task.status_tugas === 'Selesai'}
+                      onChange={(e) => {
+                        const newStatus = e.target.checked ? 'Selesai' : 'Sedang Dikerjakan'
+                        startTransition(() => updateTaskStatus(task.id, newStatus))
+                      }}
+                      disabled={isPending}
+                    />
+                    <div className="w-10 h-10 rounded-xl border-2 border-zinc-200 peer-checked:bg-emerald-500 peer-checked:border-emerald-500 flex items-center justify-center transition-all peer-active:scale-95 group-hover/check:border-emerald-500">
+                      <svg className="w-6 h-6 text-white opacity-0 peer-checked:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M5 13l4 4L19 7"></path></svg>
+                    </div>
+                  </label>
                 </div>
               ))}
             </div>
@@ -212,7 +221,7 @@ export default function PicClient({
 
                     <div className="grid gap-2">
                       <div className="relative">
-                        <input type="file" accept="image/*" capture="environment" onChange={(e) => handlePhotoUpload(animal.id, e, false)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                        <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(animal.id, e, false)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                         <button className="w-full bg-zinc-900 text-white text-[10px] font-black py-4 rounded-2xl uppercase tracking-[0.2em] active:scale-95 transition-transform">
                           {animal.photo_url ? '🔄 Ganti Foto' : '📸 Upload Foto Hidup'}
                         </button>
@@ -220,7 +229,7 @@ export default function PicClient({
 
                       {animal.status_hewan !== 'Selesai Sembelih' && (
                         <div className="relative">
-                          <input type="file" accept="image/*" capture="environment" onChange={(e) => handlePhotoUpload(animal.id, e, true)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
+                          <input type="file" accept="image/*" onChange={(e) => handlePhotoUpload(animal.id, e, true)} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                           <button className="w-full bg-brand-secondary text-white text-[10px] font-black py-4 rounded-2xl uppercase tracking-[0.2em] shadow-lg shadow-emerald-900/20 active:scale-95 transition-transform">
                             🔪 SELESAI & FOTO
                           </button>

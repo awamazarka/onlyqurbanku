@@ -47,14 +47,25 @@ export default async function DashboardPage() {
         )}
 
         {panitia.role === 'admin' && (
-          <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 group hover:border-brand-primary transition-all duration-500 relative overflow-hidden">
-            <div className="w-14 h-14 bg-zinc-50 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">👥</div>
-            <h2 className="font-black text-xl text-brand-primary uppercase tracking-tighter mb-2">Kontrol Personel</h2>
-            <p className="text-xs font-medium text-zinc-400 leading-relaxed mb-8">Pantau daftar tugas panitia dan progres koordinasi seluruh sub-tim.</p>
-            <a href="/dashboard/panitia" className="inline-flex items-center gap-2 text-[10px] font-black text-brand-accent uppercase tracking-widest group-hover:gap-4 transition-all">
-              MONITORING PANITIA <span className="text-lg">&rarr;</span>
-            </a>
-          </div>
+          <>
+            <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 group hover:border-brand-primary transition-all duration-500 relative overflow-hidden">
+              <div className="w-14 h-14 bg-zinc-50 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">👥</div>
+              <h2 className="font-black text-xl text-brand-primary uppercase tracking-tighter mb-2">Kontrol Personel</h2>
+              <p className="text-xs font-medium text-zinc-400 leading-relaxed mb-8">Pantau daftar tugas panitia dan progres koordinasi seluruh sub-tim.</p>
+              <a href="/dashboard/panitia" className="inline-flex items-center gap-2 text-[10px] font-black text-brand-accent uppercase tracking-widest group-hover:gap-4 transition-all">
+                MONITORING PANITIA <span className="text-lg">&rarr;</span>
+              </a>
+            </div>
+
+            <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 group hover:border-brand-primary transition-all duration-500 relative overflow-hidden">
+              <div className="w-14 h-14 bg-zinc-50 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">📅</div>
+              <h2 className="font-black text-xl text-brand-primary uppercase tracking-tighter mb-2">Manajemen Event</h2>
+              <p className="text-xs font-medium text-zinc-400 leading-relaxed mb-8">Buat kalender dan kelola detail acara atau pengajian di mushala.</p>
+              <a href="/dashboard/events" className="inline-flex items-center gap-2 text-[10px] font-black text-brand-accent uppercase tracking-widest group-hover:gap-4 transition-all">
+                ATUR EVENT MUSHALA <span className="text-lg">&rarr;</span>
+              </a>
+            </div>
+          </>
         )}
       </div>
     </div>

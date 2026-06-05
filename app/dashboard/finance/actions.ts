@@ -43,6 +43,100 @@ export async function addCashflow(formData: FormData, picId: string) {
   return { success: true }
 }
 
+export async function updateCashflow(formData: FormData) {
+  const supabase = await createClient()
+  
+  const id = formData.get('id') as string
+  const tipe = formData.get('tipe') as string
+  const kategori = formData.get('kategori') as string
+  const nominal = parseFloat(formData.get('nominal') as string)
+  const keterangan = formData.get('keterangan') as string
+
+  const { error } = await supabase
+    .from('operational_cashflow')
+    .update({ 
+      tipe, 
+      kategori, 
+      nominal, 
+      keterangan 
+    })
+    .eq('id', id)
+
+  if (error) return { error: error.message }
+  
+  revalidatePath('/dashboard/finance')
+  return { success: true }
+}
+
+export async function deleteCashflow(id: string) {
+  const supabase = await createClient()
+  const { error } = await supabase.from('operational_cashflow').delete().eq('id', id)
+  
+  if (error) throw new Error(error.message)
+  revalidatePath('/dashboard/finance')
+}
+
+export async function addInstallment(formData: FormData) {
+  const supabase = await createClient()
+  
+  const id = formData.get('id') as string
+  const date = formData.get('date') as string
+  const addedAmount = parseFloat(formData.get('amount') as string)
+  
+  // Get current data
+  const { data: pekurban, error: fetchError } = await supabase
+    .from('pekurban_names')
+    .select('amount_paid, notes, animal_id, biaya_potong_dibayar, qurban_animals(harga_per_slot)')
+    .eq('id', id)
+    .single()
+    
+  if (fetchError || !pekurban) return { error: fetchError?.message || 'Data tidak ditemukan' }
+  
+  const currentAmount = pekurban.amount_paid || 0
+  const newAmount = currentAmount + addedAmount
+  
+  // Parse existing history
+  let history = []
+  if (pekurban.notes) {
+    try {
+      history = JSON.parse(pekurban.notes)
+      if (!Array.isArray(history)) history = []
+    } catch (e) {
+      history = []
+    }
+  }
+  
+  // Append new installment
+  history.push({
+    id: Date.now().toString(),
+    date: date,
+    amount: addedAmount
+  })
+  
+  // Check Lunas status
+  const qAnimals: any = pekurban.qurban_animals
+  const hargaSlot = Array.isArray(qAnimals) ? qAnimals[0]?.harga_per_slot : qAnimals?.harga_per_slot || 0
+  let payment_status = 'Cicil'
+  if (newAmount >= hargaSlot && pekurban.biaya_potong_dibayar) {
+    payment_status = 'Lunas'
+  }
+  
+  const { error: updateError } = await supabase
+    .from('pekurban_names')
+    .update({
+      amount_paid: newAmount,
+      notes: JSON.stringify(history),
+      payment_status: payment_status
+    })
+    .eq('id', id)
+    
+  if (updateError) return { error: updateError.message }
+  
+  revalidatePath('/')
+  revalidatePath('/dashboard/finance')
+  return { success: true }
+}
+
 export async function upsertPekurban(formData: FormData) {
   const supabase = await createClient()
   
@@ -69,7 +163,7 @@ export async function upsertPekurban(formData: FormData) {
     payment_status = 'Cicil'
   }
 
-  const data = {
+  const data: any = {
     animal_id,
     nama_pekurban,
     no_whatsapp,
@@ -82,12 +176,26 @@ export async function upsertPekurban(formData: FormData) {
 
   let error
   if (id) {
+    // If editing existing, we do not overwrite notes to preserve history, unless we want to reset it.
+    // For MVP, editing from Manage tab just updates the total amount.
     const { error: updateError } = await supabase
       .from('pekurban_names')
       .update(data)
       .eq('id', id)
     error = updateError
   } else {
+    // If new registration, initialize history
+    let notes = null
+    if (amount_paid > 0) {
+      const initialHistory = [{
+        id: Date.now().toString(),
+        date: new Date().toISOString().split('T')[0],
+        amount: amount_paid
+      }]
+      notes = JSON.stringify(initialHistory)
+    }
+    data.notes = notes
+
     const { error: insertError } = await supabase
       .from('pekurban_names')
       .insert([data])

@@ -22,6 +22,9 @@ export default function Navbar() {
           <Link href="/monitoring-panitia" className="text-xs font-black text-zinc-500 hover:text-brand-primary transition-colors tracking-widest uppercase">
             Monitoring Panitia
           </Link>
+          <Link href="/events" className="text-xs font-black text-zinc-500 hover:text-brand-primary transition-colors tracking-widest uppercase">
+            Kegiatan
+          </Link>
           <Link href="/login" className="px-6 py-2.5 bg-brand-primary text-white text-[10px] font-black rounded-xl hover:bg-emerald-800 transition-all shadow-lg shadow-emerald-900/10 uppercase tracking-[0.2em]">
             MASUK PANITIA
           </Link>
@@ -38,7 +41,7 @@ export default function Navbar() {
 
     {/* Mobile Bottom Navigation - Fully transparent to show footer text */}
     <div className="md:hidden fixed bottom-6 left-4 right-4 z-50 pointer-events-none">
-      <div className="flex items-center justify-between pointer-events-auto px-4 py-2">
+      <div className="flex items-center justify-between pointer-events-auto px-2 py-2">
         <Link href="/" className="flex flex-col items-center gap-1 transition-transform active:scale-90">
           <div className="w-10 h-10 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
             <span className="text-xl">🐄</span>
@@ -50,6 +53,12 @@ export default function Navbar() {
             <span className="text-xl">👥</span>
           </div>
           <span className="text-[7px] font-black uppercase tracking-[0.2em] text-brand-primary drop-shadow-sm">Panitia</span>
+        </Link>
+        <Link href="/events" className="flex flex-col items-center gap-1 transition-transform active:scale-90">
+          <div className="w-10 h-10 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-lg border border-white/20">
+            <span className="text-xl">📅</span>
+          </div>
+          <span className="text-[7px] font-black uppercase tracking-[0.2em] text-brand-primary drop-shadow-sm">Kegiatan</span>
         </Link>
         <Link href="/dashboard" className="flex flex-col items-center gap-1 transition-transform active:scale-90">
           <div className="w-10 h-10 bg-white/10 backdrop-blur-lg rounded-2xl flex items-center justify-center shadow-lg border border-white/20">

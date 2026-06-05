@@ -1,7 +1,14 @@
 'use client'
 
 import { useState, useTransition, useEffect, useMemo } from 'react'
-import { updatePayment, addCashflow, upsertPekurban, deletePekurban } from '@/app/dashboard/finance/actions'
+import { updatePayment, addCashflow, upsertPekurban, deletePekurban, updateCashflow, deleteCashflow, addInstallment } from '@/app/dashboard/finance/actions'
+import * as XLSX from 'xlsx'
+
+interface PaymentHistory {
+  id: string
+  date: string
+  amount: number
+}
 
 interface Pekurban {
   id: string
@@ -13,6 +20,7 @@ interface Pekurban {
   biaya_potong_dibayar: boolean
   animal_id: string
   slot_number: number
+  notes?: string
   qurban_animals: { id: string; tag_number: string; jenis_hewan: string; harga_per_slot: number }
 }
 
@@ -46,7 +54,11 @@ export default function FinanceClient({
   const [activeTab, setActiveTab] = useState<'payments' | 'cashbook' | 'manage'>('payments')
   const [isPending, startTransition] = useTransition()
   const [editingPekurban, setEditingPekurban] = useState<Partial<Pekurban> | null>(null)
+  const [editingCashflow, setEditingCashflow] = useState<Partial<Cashflow> | null>(null)
   const [showForm, setShowForm] = useState(false)
+  const [showCashflowForm, setShowCashflowForm] = useState(false)
+  const [installmentFormId, setInstallmentFormId] = useState<string | null>(null)
+  const [expandedHistory, setExpandedHistory] = useState<Record<string, boolean>>({})
   const [filterAnimalId, setFilterAnimalId] = useState<string>('all')
   const [mounted, setMounted] = useState(false)
 
@@ -54,17 +66,95 @@ export default function FinanceClient({
     setMounted(true)
   }, [])
 
+  const toggleHistory = (id: string) => {
+    setExpandedHistory(prev => ({ ...prev, [id]: !prev[id] }))
+  }
+
   const filteredPekurbans = useMemo(() => {
     if (filterAnimalId === 'all') return pekurbans
     return pekurbans.filter(p => p.animal_id === filterAnimalId)
   }, [pekurbans, filterAnimalId])
 
-  const handleSetLunas = (p: Pekurban) => {
-    const animal = animals.find(a => a.id === p.animal_id)
-    const targetAmount = animal?.harga_per_slot || 0
-    if (confirm(`Setel pelunasan untuk ${p.nama_pekurban}? (Target: Rp${targetAmount.toLocaleString()})`)) {
-      startTransition(() => updatePayment(p.id, targetAmount, 'Lunas'))
-    }
+  const monthlySummary = useMemo(() => {
+    const summary: Record<string, { in: number; out: number }> = {}
+    cashflows.forEach(cf => {
+      const date = new Date(cf.created_at)
+      const monthYear = date.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })
+      if (!summary[monthYear]) summary[monthYear] = { in: 0, out: 0 }
+      
+      if (cf.tipe === 'Pemasukan') {
+        summary[monthYear].in += cf.nominal
+      } else {
+        summary[monthYear].out += cf.nominal
+      }
+    })
+    return summary
+  }, [cashflows])
+
+  const handleExportExcel = () => {
+    const dataToExport = cashflows.map(cf => {
+      const date = new Date(cf.created_at)
+      
+      const dateFormatter = new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      })
+
+      const timeFormatter = new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      })
+
+      return {
+        Tanggal: dateFormatter.format(date),
+        Waktu: `${timeFormatter.format(date).replace(/\./g, ':')} WIB`,
+        Tipe: cf.tipe,
+        Kategori: cf.kategori,
+        Keterangan: cf.keterangan || '-',
+        Nominal: cf.nominal
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Buku Kas')
+    XLSX.writeFile(workbook, `Buku_Kas_Qurban_${new Date().getTime()}.xlsx`)
+  }
+
+  const handleExportExcelPayments = () => {
+    const dataToExport = pekurbans.map(p => {
+      let historyText = '-'
+      try {
+        if (p.notes) {
+          const history: PaymentHistory[] = JSON.parse(p.notes)
+          if (Array.isArray(history) && history.length > 0) {
+            historyText = history.map(h => `${h.date}: Rp${h.amount.toLocaleString('id-ID')}`).join(' | ')
+          }
+        }
+      } catch (e) {}
+
+      return {
+        Hewan: p.qurban_animals?.tag_number,
+        Slot: p.slot_number,
+        Nama: p.nama_pekurban,
+        WhatsApp: p.no_whatsapp,
+        Asal: p.asal_rt_rw,
+        Status: p.payment_status,
+        Total_Bayar: p.amount_paid,
+        Biaya_Potong: p.biaya_potong_dibayar ? 'Lunas' : 'Belum',
+        Riwayat_Cicilan: historyText
+      }
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Iuran Pekurban')
+    XLSX.writeFile(workbook, `Iuran_Pekurban_${new Date().getTime()}.xlsx`)
   }
 
   const generateReceipt = (p: Pekurban) => {
@@ -91,6 +181,18 @@ export default function FinanceClient({
     setEditingPekurban(p)
     setShowForm(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleEditCashflow = (cf: Cashflow) => {
+    setEditingCashflow(cf)
+    setShowCashflowForm(true)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  const handleDeleteCashflow = (id: string) => {
+    if (confirm('Hapus catatan kas ini?')) {
+      startTransition(() => deleteCashflow(id))
+    }
   }
 
   const getAvailableSlots = (animalId: string, currentId?: string) => {
@@ -281,21 +383,35 @@ export default function FinanceClient({
 
       {activeTab === 'payments' && (
         <div className="grid gap-4 px-2">
-          <header className="mb-2 px-2">
-             <h3 className="font-black text-xl text-brand-primary tracking-tight uppercase leading-none">Kontrol Iuran</h3>
-             <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Konfirmasi & Kirim Kwitansi WA</p>
+          <header className="mb-2 px-2 flex justify-between items-end">
+            <div>
+               <h3 className="font-black text-xl text-brand-primary tracking-tight uppercase leading-none">Kontrol Iuran</h3>
+               <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest mt-1">Konfirmasi & Kirim Kwitansi WA</p>
+            </div>
+            <button 
+              onClick={handleExportExcelPayments}
+              className="bg-emerald-50 text-emerald-700 text-[10px] font-black px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-100 transition-colors shadow-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+              EXPORT
+            </button>
           </header>
           {pekurbans.map(p => {
             const isLunas = p.payment_status === 'Lunas'
             const hargaSlot = p.qurban_animals?.harga_per_slot || 0
             const sisa = hargaSlot - p.amount_paid
             
+            let history: PaymentHistory[] = []
+            if (p.notes) {
+              try { history = JSON.parse(p.notes) } catch (e) {}
+            }
+
             return (
               <div key={p.id} className="bg-white p-7 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden">
                 {isLunas && <div className="absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 bg-brand-primary/5 rounded-full flex items-end justify-start p-6 text-brand-primary text-xl">✓</div>}
                 
                 <div className="flex justify-between items-start mb-6">
-                  <div>
+                  <div className="w-full">
                     <div className="flex flex-wrap gap-2 mb-3">
                       <span className={`text-[10px] font-black px-3 py-1 rounded-full shadow-sm tracking-widest ${isLunas ? 'bg-emerald-100 text-emerald-700' : 'bg-brand-accent/10 text-brand-accent'}`}>
                         {isLunas ? 'LUNAS' : `SISA RP ${sisa.toLocaleString('id-ID')}`}
@@ -315,27 +431,79 @@ export default function FinanceClient({
                         Biaya Potong: {p.biaya_potong_dibayar ? 'LUNAS (Rp 150rb)' : 'BELUM BAYAR'}
                       </p>
                     </div>
-                    <p className="text-[9px] font-black text-zinc-300 uppercase mt-4 tracking-[0.2em]">{p.qurban_animals?.tag_number} • {p.asal_rt_rw}</p>
+                    <p className="text-[9px] font-black text-zinc-300 uppercase mt-4 tracking-[0.2em] mb-4">{p.qurban_animals?.tag_number} • {p.asal_rt_rw}</p>
+
+                    {/* Riwayat Cicilan */}
+                    {history.length > 0 && (
+                      <div className="bg-zinc-50 rounded-2xl p-4 mt-2 border border-zinc-100 mb-4">
+                        <div className="flex justify-between items-center mb-2 cursor-pointer group" onClick={() => toggleHistory(p.id)}>
+                          <p className="text-[9px] font-black uppercase text-zinc-400 tracking-widest group-hover:text-brand-primary transition-colors">Riwayat Pembayaran</p>
+                          <svg className={`w-4 h-4 text-zinc-400 transition-transform ${expandedHistory[p.id] ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                        <div className="space-y-2">
+                          {expandedHistory[p.id] ? (
+                            history.map((h, i) => (
+                              <div key={h.id || i} className="flex justify-between items-center">
+                                <span className="text-xs font-bold text-zinc-600">{new Date(h.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                                <span className="text-xs font-black text-emerald-600">+ Rp{h.amount.toLocaleString('id-ID')}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="flex justify-between items-center">
+                              <span className="text-xs font-bold text-zinc-600">Latest: {new Date(history[history.length - 1].date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                              <span className="text-xs font-black text-emerald-600">+ Rp{history[history.length - 1].amount.toLocaleString('id-ID')}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
                 
-                <div className="flex gap-3">
-                  {!isLunas ? (
-                    <button 
-                      onClick={() => {
-                        handleEdit(p);
-                        setActiveTab('manage');
-                      }} 
-                      className="flex-1 bg-brand-primary text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-900/20 uppercase text-xs tracking-widest active:scale-95 transition-transform"
-                    >
-                      UPDATE CICILAN
-                    </button>
-                  ) : (
-                    <button onClick={() => generateReceipt(p)} className="flex-1 bg-zinc-900 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 uppercase text-xs tracking-widest active:scale-95 transition-transform">
-                      <span className="text-lg">📩</span> KIRIM KWITANSI WA
-                    </button>
-                  )}
-                </div>
+                {installmentFormId === p.id ? (
+                  <form action={async (formData) => {
+                    const res = await addInstallment(formData)
+                    if (res.success) {
+                      setInstallmentFormId(null)
+                    } else {
+                      alert(res.error)
+                    }
+                  }} className="bg-emerald-50 p-5 rounded-[2rem] border border-emerald-100 space-y-4 animate-in fade-in duration-300">
+                    <input type="hidden" name="id" value={p.id} />
+                    <div>
+                      <label className="text-[9px] font-black uppercase text-emerald-600 tracking-widest ml-1">Tanggal</label>
+                      <input type="date" name="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full mt-1 p-3 text-sm font-bold bg-white border-none rounded-xl outline-none focus:ring-2 focus:ring-brand-primary" />
+                    </div>
+                    <div>
+                      <label className="text-[9px] font-black uppercase text-emerald-600 tracking-widest ml-1">Nominal Tambahan</label>
+                      <input type="number" name="amount" required placeholder="Rp 0" max={sisa} className="w-full mt-1 p-3 text-lg font-black bg-white border-none rounded-xl outline-none focus:ring-2 focus:ring-brand-primary text-brand-primary" />
+                      <p className="text-[9px] text-emerald-500 mt-1 ml-1 font-bold">Maksimal: Rp{sisa.toLocaleString('id-ID')}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={isPending} className="flex-1 bg-brand-primary text-white font-black py-3 rounded-xl uppercase text-[10px] tracking-widest active:scale-95 transition-transform">
+                        Simpan
+                      </button>
+                      <button type="button" onClick={() => setInstallmentFormId(null)} className="px-4 bg-zinc-200 text-zinc-600 font-black py-3 rounded-xl uppercase text-[10px] tracking-widest active:scale-95 transition-transform">
+                        Batal
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex gap-3">
+                    {!isLunas ? (
+                      <button 
+                        onClick={() => setInstallmentFormId(p.id)} 
+                        className="flex-1 bg-brand-primary text-white font-black py-4 rounded-2xl shadow-lg shadow-emerald-900/20 uppercase text-xs tracking-widest active:scale-95 transition-transform"
+                      >
+                        TAMBAH CICILAN
+                      </button>
+                    ) : (
+                      <button onClick={() => generateReceipt(p)} className="flex-1 bg-zinc-900 text-white font-black py-4 rounded-2xl flex items-center justify-center gap-3 uppercase text-xs tracking-widest active:scale-95 transition-transform">
+                        <span className="text-lg">📩</span> KIRIM KWITANSI WA
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             )
           })}
@@ -344,35 +512,92 @@ export default function FinanceClient({
 
       {activeTab === 'cashbook' && (
         <div className="space-y-8 px-1">
-          <form action={async (formData) => {
-            const res = await addCashflow(formData, panitiaId)
-            if (res.success) { alert('Catatan kas berhasil disimpan'); setActiveTab('cashbook'); }
-          }} className="bg-brand-primary p-8 rounded-[3rem] shadow-2xl shadow-emerald-900/40 space-y-6 text-white relative overflow-hidden">
-            <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/5 rounded-full blur-3xl"></div>
-            <h3 className="font-black text-xl uppercase tracking-tighter flex items-center gap-3">
-               <span className="text-2xl">💸</span> INPUT KAS OPERASIONAL
-            </h3>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <select name="tipe" className="p-4 text-sm font-black bg-emerald-900/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-white/50 appearance-none">
-                <option value="Pemasukan">Pemasukan (+)</option>
-                <option value="Pengeluaran">Pengeluaran (-)</option>
-              </select>
-              <input name="kategori" placeholder="Kategori" required className="p-4 text-sm font-black bg-emerald-900/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-white/50 placeholder-emerald-100/30" />
-            </div>
-            
-            <div className="space-y-1.5">
-               <label className="text-[10px] font-black uppercase text-emerald-200 ml-1">Nominal (Rupiah)</label>
-               <input name="nominal" type="number" placeholder="Rp 0" required className="w-full p-6 text-4xl font-black bg-emerald-900/50 border-none rounded-[2rem] outline-none focus:ring-2 focus:ring-white/50 placeholder-emerald-100/20" />
-            </div>
-
-            <button type="submit" disabled={isPending} className="w-full bg-brand-accent text-white font-black py-5 rounded-[2rem] shadow-xl shadow-amber-900/40 uppercase tracking-[0.2em] active:scale-95 transition-transform">
-              SIMPAN TRANSAKSI
+          {!showCashflowForm ? (
+            <button 
+              onClick={() => { setEditingCashflow(null); setShowCashflowForm(true); }}
+              className="islamic-btn-primary w-full flex items-center justify-center gap-3 text-sm py-4 rounded-3xl"
+            >
+              <span className="text-xl">💸</span> INPUT KAS OPERASIONAL
             </button>
-          </form>
+          ) : (
+            <div className="bg-brand-primary p-8 rounded-[3rem] shadow-2xl shadow-emerald-900/40 space-y-6 text-white relative overflow-hidden animate-in slide-in-from-top-4 duration-500">
+              <div className="flex justify-between items-center border-b border-white/20 pb-4">
+                <h3 className="font-black text-lg uppercase tracking-tighter flex items-center gap-3">
+                  {editingCashflow?.id ? '📝 Edit Transaksi' : '💸 Transaksi Baru'}
+                </h3>
+                <button onClick={() => setShowCashflowForm(false)} className="w-10 h-10 bg-white/10 text-white/70 rounded-full flex items-center justify-center hover:bg-white/20">✕</button>
+              </div>
+
+              <form action={async (formData) => {
+                let res;
+                if (editingCashflow?.id) {
+                  res = await updateCashflow(formData);
+                } else {
+                  res = await addCashflow(formData, panitiaId);
+                }
+                
+                if (res.success) { 
+                  setShowCashflowForm(false);
+                  setEditingCashflow(null);
+                } else {
+                  alert(res.error)
+                }
+              }} className="space-y-6 relative z-10">
+                {editingCashflow?.id && <input type="hidden" name="id" value={editingCashflow.id} />}
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <select name="tipe" defaultValue={editingCashflow?.tipe || 'Pemasukan'} className="p-4 text-sm font-black bg-emerald-900/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-white/50 appearance-none text-white">
+                    <option value="Pemasukan">Pemasukan (+)</option>
+                    <option value="Pengeluaran">Pengeluaran (-)</option>
+                  </select>
+                  <input name="kategori" defaultValue={editingCashflow?.kategori} placeholder="Kategori" required className="p-4 text-sm font-black bg-emerald-900/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-white/50 placeholder-emerald-100/30 text-white" />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-emerald-200 ml-1">Keterangan Tambahan</label>
+                  <input name="keterangan" defaultValue={editingCashflow?.keterangan} placeholder="Opsional" className="w-full p-4 text-sm font-black bg-emerald-900/50 border-none rounded-2xl outline-none focus:ring-2 focus:ring-white/50 placeholder-emerald-100/30 text-white" />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-black uppercase text-emerald-200 ml-1">Nominal (Rupiah)</label>
+                  <input name="nominal" type="number" defaultValue={editingCashflow?.nominal} placeholder="Rp 0" required className="w-full p-6 text-4xl font-black bg-emerald-900/50 border-none rounded-[2rem] outline-none focus:ring-2 focus:ring-white/50 placeholder-emerald-100/20 text-white" />
+                </div>
+
+                <button type="submit" disabled={isPending} className="w-full bg-brand-accent text-white font-black py-5 rounded-[2rem] shadow-xl shadow-amber-900/40 uppercase tracking-[0.2em] active:scale-95 transition-transform">
+                  SIMPAN TRANSAKSI
+                </button>
+              </form>
+              <div className="absolute top-0 right-0 -mr-10 -mt-10 w-40 h-40 bg-white/5 rounded-full blur-3xl z-0 pointer-events-none"></div>
+            </div>
+          )}
+
+          <div className="space-y-6 px-2">
+            <div className="flex justify-between items-end">
+              <h3 className="font-black text-xs uppercase text-zinc-400 tracking-[0.2em]">Ringkasan Bulanan</h3>
+              <button 
+                onClick={handleExportExcel}
+                className="bg-emerald-50 text-emerald-700 text-[10px] font-black px-4 py-2 rounded-xl flex items-center gap-2 hover:bg-emerald-100 transition-colors shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                EXPORT EXCEL
+              </button>
+            </div>
+            
+            <div className="grid gap-3">
+              {Object.entries(monthlySummary).map(([month, data]) => (
+                <div key={month} className="bg-zinc-50 p-4 rounded-2xl border border-zinc-100 flex justify-between items-center shadow-sm">
+                  <p className="font-black text-sm text-zinc-700">{month}</p>
+                  <div className="text-right">
+                    <p className="text-[10px] font-bold text-emerald-600 uppercase">In: Rp{data.in.toLocaleString('id-ID')}</p>
+                    <p className="text-[10px] font-bold text-amber-600 uppercase">Out: Rp{data.out.toLocaleString('id-ID')}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <div className="space-y-4 px-2">
-            <h3 className="font-black text-xs uppercase text-zinc-400 tracking-[0.2em]">Riwayat Kas Terbaru</h3>
+            <h3 className="font-black text-xs uppercase text-zinc-400 tracking-[0.2em] mt-8">Riwayat Kas Terbaru</h3>
             <div className="grid gap-3">
               {cashflows.map(cf => (
                 <div key={cf.id} className="bg-white p-6 rounded-3xl border border-zinc-50 shadow-lg shadow-emerald-900/5 flex justify-between items-center group">
@@ -385,9 +610,19 @@ export default function FinanceClient({
                        <p className="text-[10px] font-bold text-zinc-300 uppercase tracking-widest mt-1">{new Date(cf.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}</p>
                      </div>
                   </div>
-                  <p className={`font-black text-xl ${cf.tipe === 'Pemasukan' ? 'text-emerald-600' : 'text-brand-accent'}`}>
-                    {cf.tipe === 'Pemasukan' ? '+' : '-'} Rp{cf.nominal.toLocaleString('id-ID')}
-                  </p>
+                  <div className="flex items-center gap-4">
+                    <p className={`font-black text-xl ${cf.tipe === 'Pemasukan' ? 'text-emerald-600' : 'text-brand-accent'}`}>
+                      {cf.tipe === 'Pemasukan' ? '+' : '-'} Rp{cf.nominal.toLocaleString('id-ID')}
+                    </p>
+                    <div className="flex flex-col gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                      <button onClick={() => handleEditCashflow(cf)} className="text-emerald-600 p-1 bg-emerald-50 rounded-md hover:bg-emerald-100">
+                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-5M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                      <button onClick={() => handleDeleteCashflow(cf.id)} className="text-amber-600 p-1 bg-amber-50 rounded-md hover:bg-amber-100">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
@@ -397,3 +632,5 @@ export default function FinanceClient({
     </div>
   )
 }
+
+
