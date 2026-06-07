@@ -40,6 +40,8 @@ export default function MonitoringClient({ animals }: { animals: Animal[] }) {
   const totalAnimals = animals.length
   const finishedAnimals = animals.filter(a => a.status_hewan === 'Selesai Sembelih').length
   const progressPercent = totalAnimals > 0 ? Math.round((finishedAnimals / totalAnimals) * 100) : 0
+  
+  const totalPekurban = animals.reduce((acc, animal) => acc + (animal.pekurban_names ? animal.pekurban_names.length : 0), 0)
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -69,21 +71,26 @@ export default function MonitoringClient({ animals }: { animals: Animal[] }) {
       </header>
 
       {/* Stats Summary - Islamic Themed */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-        <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500 text-6xl">🐄</div>
-          <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Total Sapi</p>
-          <p className="text-5xl font-black text-brand-primary">{animals.filter(a => a.jenis_hewan === 'Sapi').length}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mb-16">
+        <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500 text-5xl md:text-6xl">🐄</div>
+          <p className="text-[9px] md:text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Sapi</p>
+          <p className="text-4xl md:text-5xl font-black text-brand-primary">{animals.filter(a => a.jenis_hewan === 'Sapi').length}</p>
         </div>
-        <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500 text-6xl">🐐</div>
-          <p className="text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Total Kambing</p>
-          <p className="text-5xl font-black text-brand-primary">{animals.filter(a => a.jenis_hewan === 'Kambing').length}</p>
+        <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500 text-5xl md:text-6xl">🐐</div>
+          <p className="text-[9px] md:text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Kambing</p>
+          <p className="text-4xl md:text-5xl font-black text-brand-primary">{animals.filter(a => a.jenis_hewan === 'Kambing').length}</p>
         </div>
-        <div className="bg-brand-primary p-8 rounded-[2.5rem] shadow-xl shadow-emerald-900/20 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:rotate-12 transition-transform duration-500 text-6xl text-white italic font-black text-[120px] leading-none pointer-events-none">%</div>
-          <p className="text-[10px] font-black uppercase text-emerald-200 tracking-widest mb-1">Progres Sembelih</p>
-          <p className="text-5xl font-black text-white">{progressPercent}%</p>
+        <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-zinc-100 shadow-xl shadow-emerald-900/5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:scale-110 transition-transform duration-500 text-5xl md:text-6xl">👥</div>
+          <p className="text-[9px] md:text-[10px] font-black uppercase text-zinc-400 tracking-widest mb-1">Shohibul Qurban</p>
+          <p className="text-4xl md:text-5xl font-black text-brand-primary">{totalPekurban}</p>
+        </div>
+        <div className="bg-brand-primary p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] shadow-xl shadow-emerald-900/20 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:rotate-12 transition-transform duration-500 text-white italic font-black text-[100px] md:text-[120px] leading-none pointer-events-none">%</div>
+          <p className="text-[9px] md:text-[10px] font-black uppercase text-emerald-200 tracking-widest mb-1">Progres</p>
+          <p className="text-4xl md:text-5xl font-black text-white">{progressPercent}%</p>
         </div>
       </div>
 

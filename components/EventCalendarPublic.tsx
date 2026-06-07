@@ -28,12 +28,12 @@ export default function EventCalendarPublic({ events }: { events: any[] }) {
     const minSwipeDistance = 50
 
     if (distance > minSwipeDistance) {
-      // Swiped Left (finger moved left)
-      prevMonth()
+      // Swiped Left (finger moved left) -> Next Month
+      nextMonth()
     }
     if (distance < -minSwipeDistance) {
-      // Swiped Right (finger moved right)
-      nextMonth()
+      // Swiped Right (finger moved right) -> Prev Month
+      prevMonth()
     }
   }
 

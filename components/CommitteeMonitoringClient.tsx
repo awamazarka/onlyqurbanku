@@ -44,10 +44,10 @@ export default function CommitteeMonitoringClient({ profiles }: { profiles: Prof
         <div className="inline-block px-4 py-1.5 bg-brand-primary/10 text-brand-primary text-[10px] font-black rounded-full uppercase tracking-[0.2em]">
           Struktur Organisasi
         </div>
-        <h1 className="text-5xl font-black text-brand-primary tracking-tighter uppercase leading-none">
-          Khidmah <span className="text-brand-accent italic">Panitia</span>
+        <h1 className="text-5xl md:text-6xl font-black text-brand-primary tracking-tighter leading-none">
+          Monitoring <span className="text-brand-accent italic">Panitia</span>
         </h1>
-        <p className="text-zinc-500 font-medium max-w-xl mx-auto italic">
+        <p className="text-zinc-500 font-medium max-w-xl mx-auto italic mt-4">
           "Barangsiapa yang memudahkan urusan saudaranya, maka Allah akan memudahkan urusannya di dunia dan akhirat."
         </p>
       </header>
