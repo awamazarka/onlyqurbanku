@@ -48,7 +48,7 @@ export default function CommitteeMonitoringClient({ profiles }: { profiles: Prof
           Monitoring <span className="text-brand-accent italic">Panitia</span>
         </h1>
         <p className="text-zinc-500 font-medium max-w-xl mx-auto italic mt-4">
-          "Barangsiapa yang memudahkan urusan saudaranya, maka Allah akan memudahkan urusannya di dunia dan akhirat."
+          "Barangsiapa yang memudahkan urusan saudaranya, maka Allah akan memudahkan urusannya di dunia dan akhirat." (HR. Muslim)
         </p>
       </header>
 
