@@ -41,7 +41,7 @@ export async function verifyAndSetSession(token: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: 60 * 60 * 24 * 7 // 1 week
+    maxAge: 30 * 60 // 30 minutes
   })
 
   redirect('/dashboard')

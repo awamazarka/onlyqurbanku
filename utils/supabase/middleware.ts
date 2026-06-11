@@ -31,6 +31,18 @@ export async function updateSession(request: NextRequest) {
   // supabase.auth.getUser(). A simple mistake can make it very hard to debug
   // issues with users being randomly logged out.
 
+  // Refresh qurban_token session (Inactivity timeout 30 minutes)
+  const token = request.cookies.get('qurban_token')?.value
+  if (token) {
+    supabaseResponse.cookies.set('qurban_token', token, {
+      path: '/',
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 30 * 60 // 30 minutes
+    })
+  }
+
   const {
     data: { user },
   } = await supabase.auth.getUser()

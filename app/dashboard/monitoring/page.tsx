@@ -1,9 +1,16 @@
-import { createClient } from '@/utils/supabase/server'
+import { createClient, getPanitiaProfile } from '@/utils/supabase/server'
 import CommitteeMonitoringClient from '@/components/CommitteeMonitoringClient'
+import { redirect } from 'next/navigation'
 
 export const revalidate = 60 // Revalidate every minute
 
 export default async function PublicPanitiaPage() {
+  const panitia = await getPanitiaProfile()
+
+  if (!panitia) {
+    redirect('/login')
+  }
+
   const supabase = await createClient()
 
   // Fetch all panitia profiles and their tasks
