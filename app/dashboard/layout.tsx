@@ -1,6 +1,5 @@
 import { getPanitiaProfile } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
-import DashboardShell from '@/components/DashboardShell'
 
 export default async function DashboardLayout({
   children,
@@ -14,8 +13,8 @@ export default async function DashboardLayout({
   }
 
   return (
-    <DashboardShell panitia={panitia}>
+    <>
       {children}
-    </DashboardShell>
+    </>
   )
 }
