@@ -15,10 +15,6 @@ export default function NavbarClient({ panitia }: { panitia: Panitia | null }) {
   const isDashboard = pathname.startsWith('/dashboard')
   
   const handlePanelClick = () => {
-    if (!isDashboard) {
-      // Jika tidak di dashboard, navigasi dulu baru buka sidebar (atau biarkan layout dashboard otomatis menanganinya)
-      router.push('/dashboard')
-    }
     setIsOpen(true)
   }
 

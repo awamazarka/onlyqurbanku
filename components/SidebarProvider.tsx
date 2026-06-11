@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, createContext, useContext } from 'react'
+import { useState, useEffect, createContext, useContext, useMemo } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { logout } from '@/app/login/actions'
@@ -22,6 +22,15 @@ export function useSidebar() {
   return context;
 }
 
+const MENU_ITEMS = [
+  { name: 'Ringkasan', href: '/dashboard', icon: '🏠', roles: ['admin', 'panitia'] },
+  { name: 'Lapangan', href: '/dashboard/pic', icon: '🐄', roles: ['admin', 'panitia'] },
+  { name: 'Keuangan', href: '/dashboard/finance', icon: '💰', roles: ['admin', 'Bendahara'] },
+  { name: 'Manajemen Tugas', href: '/dashboard/panitia', icon: '📝', roles: ['admin'] },
+  { name: 'Monitoring Tim', href: '/dashboard/monitoring', icon: '👥', roles: ['admin', 'panitia'] },
+  { name: 'Event Mushala', href: '/dashboard/events', icon: '📅', roles: ['admin'] },
+]
+
 export default function SidebarProvider({ 
   panitia, 
   children 
@@ -37,22 +46,16 @@ export default function SidebarProvider({
     setIsOpen(false)
   }, [pathname])
 
+  const filteredMenu = useMemo(() => {
+    if (!panitia) return []
+    return MENU_ITEMS.filter(item => 
+      panitia.role === 'admin' || 
+      item.roles.includes(panitia.role) || 
+      item.roles.includes(panitia.sub_tim)
+    )
+  }, [panitia])
+
   if (!panitia) return <>{children}</>
-
-  const menuItems = [
-    { name: 'Ringkasan', href: '/dashboard', icon: '🏠', roles: ['admin', 'pic'] },
-    { name: 'Lapangan', href: '/dashboard/pic', icon: '🐄', roles: ['admin', 'pic'] },
-    { name: 'Keuangan', href: '/dashboard/finance', icon: '💰', roles: ['admin', 'Bendahara'] },
-    { name: 'Manajemen Tugas', href: '/dashboard/panitia', icon: '📝', roles: ['admin'] },
-    { name: 'Monitoring Tim', href: '/dashboard/monitoring', icon: '👥', roles: ['admin', 'pic'] },
-    { name: 'Event Mushala', href: '/dashboard/events', icon: '📅', roles: ['admin'] },
-  ]
-
-  const filteredMenu = menuItems.filter(item => 
-    item.roles.includes('admin') || 
-    item.roles.includes(panitia.role) || 
-    item.roles.includes(panitia.sub_tim)
-  )
 
   return (
     <SidebarContext.Provider value={{ isOpen, setIsOpen }}>
@@ -66,8 +69,8 @@ export default function SidebarProvider({
         />
       )}
 
-      <aside className={`fixed top-0 left-0 bottom-0 z-[70] w-80 bg-white shadow-2xl transform transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="h-full flex flex-col p-8">
+      <aside className={`fixed top-0 left-0 bottom-0 z-[70] w-80 bg-white shadow-2xl transform transition-transform duration-500 ease-in-out ${isOpen ? 'translate-x-0' : '-translate-x-full'} overflow-y-auto scrollbar-hide`}>
+        <div className="min-h-full flex flex-col p-8">
           <div className="flex justify-between items-center mb-12">
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-brand-primary rounded-lg flex items-center justify-center text-white text-sm">🌙</div>

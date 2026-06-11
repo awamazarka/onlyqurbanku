@@ -1,5 +1,6 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { cache } from 'react'
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -28,7 +29,7 @@ export async function createClient() {
   )
 }
 
-export async function getPanitiaProfile() {
+export const getPanitiaProfile = cache(async () => {
   const cookieStore = await cookies()
   const token = cookieStore.get('qurban_token')?.value
 
@@ -43,4 +44,4 @@ export async function getPanitiaProfile() {
 
   if (error || !data) return null
   return data
-}
+})
